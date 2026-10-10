@@ -3,27 +3,44 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>カラダログ｜通信テスト</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+  <title>カラダログ｜認証・通信テスト</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <h2>💧 カラダログ</h2>
-  <p id="status">通信テスト準備中…</p>
-  <pre id="result"></pre>
+  <p id="status">準備中…</p>
+  <p id="detail"></p>
 
   <script>
+    const LIFF_ID = "2011952112-wmxBobwq";
     const GAS_URL = "https://script.google.com/macros/s/AKfycbxeHd--NdaM-4o1Tmwb1Sy6pUGYcNQWWrMWbzRUcNTkjO91wRIvTgYZDQ-JZBG1sGAfcw/exec";
 
-    async function testConnection() {
+    async function start() {
       const status = document.getElementById("status");
-      const result = document.getElementById("result");
+      const detail = document.getElementById("detail");
 
       try {
-        status.textContent = "① GASへ通信中…";
+        status.textContent = "① LIFF初期化中…";
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          status.textContent = "LINEログインが必要です";
+          return;
+        }
+
+        status.textContent = "② LINE認証成功";
+
+        const idToken = liff.getIDToken();
+        if (!idToken) {
+          throw new Error("IDトークンを取得できません");
+        }
+
+        detail.textContent = "③ IDトークン取得成功";
 
         const response = await fetch(GAS_URL, {
-          method: "GET",
-          redirect: "follow"
+          method: "GET"
         });
 
         if (!response.ok) {
@@ -32,16 +49,21 @@
 
         const data = await response.json();
 
-        status.textContent = "② 通信成功！";
-        result.textContent = JSON.stringify(data, null, 2);
+        if (!data.success) {
+          throw new Error("GASの応答が正常ではありません");
+        }
+
+        status.textContent = "④ GAS通信成功！";
+        detail.textContent =
+          "LINE認証・GAS通信ともに正常です！";
 
       } catch (error) {
-        status.textContent = "❌ 通信エラー";
-        result.textContent = error.message;
+        status.textContent = "❌ エラー";
+        detail.textContent = error.message;
       }
     }
 
-    testConnection();
+    start();
   </script>
 </body>
 </html>
