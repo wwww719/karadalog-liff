@@ -137,7 +137,30 @@ try {
     throw new Error("APIからエラーが返されました");
   }
 
-  statusElement.textContent = "LINE接続OK・API接続OK";
+  
+const verifyResponse = await fetch(
+  "https://karadalog-api.wf17path5.workers.dev/verify",
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      idToken: liff.getIDToken()
+    })
+  }
+);
+
+const verifyResult = await verifyResponse.json();
+
+if (!verifyResponse.ok || !verifyResult.success) {
+  throw new Error(
+    verifyResult.message || "LINE本人確認に失敗しました"
+  );
+}
+
+statusElement.textContent = "LINE本人確認OK・API接続OK";
+
 } catch (apiError) {
   statusElement.textContent =
     "LINE接続OK・API接続エラー：" + apiError.message;
