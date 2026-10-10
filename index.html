@@ -171,12 +171,80 @@ statusElement.textContent = "LINE本人確認OK・API接続OK";
       }
     }
 
-    registerButton.addEventListener("click", () => {
-      alert(
-        amount + "ml の入力を確認しました。\n" +
-        "※まだテスト画面のため登録はされません。"
+    
+let registering = false;
+
+registerButton.addEventListener("click", async () => {
+  if (registering) return;
+
+  // 数字入力とLINE接続を確認
+  const value = Number(amount);
+
+  if (!Number.isInteger(value) ||
+      value < 1 ||
+      value > 5000) {
+    alert("1〜5000mlで入力してね");
+    return;
+  }
+
+  if (!lineReady || !liff.getIDToken()) {
+    alert("LINEの接続を確認できません。画面を開き直してね。");
+    return;
+  }
+
+  registering = true;
+  registerButton.disabled = true;
+  registerButton.textContent = "登録中…";
+
+  try {
+    const response = await fetch(
+      "https://karadalog-api.wf17path5.workers.dev/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          idToken: liff.getIDToken(),
+          amount: value
+        })
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || "登録に失敗しました"
       );
-    });
+    }
+
+    alert(
+      value + "ml 登録しました！\n\n" +
+      "今日の合計：" +
+      result.todayTotal.toLocaleString() + "ml\n" +
+      "目標：" +
+      result.target.toLocaleString() + "ml"
+    );
+
+    // 登録後は数字をクリア
+    amount = "";
+    update();
+
+  } catch (error) {
+    alert(
+      "登録を確認できませんでした。\n" +
+      error.message + "\n\n" +
+      "再登録する前に、今日の記録を確認してね。"
+    );
+
+  } finally {
+    registering = false;
+    registerButton.disabled = false;
+    registerButton.textContent = "この量を登録する";
+  }
+});
+
 
     start();
   </script>
