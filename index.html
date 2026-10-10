@@ -3,65 +3,45 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>カラダログ｜認証テスト</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>カラダログ｜通信テスト</title>
 </head>
 <body>
   <h2>💧 カラダログ</h2>
-  <p id="status">準備中…</p>
-  <p id="detail"></p>
+  <p id="status">通信テスト準備中…</p>
+  <pre id="result"></pre>
 
   <script>
-    const LIFF_ID = "2011952112-wmxBobwq";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxeHd--NdaM-4o1Tmwb1Sy6pUGYcNQWWrMWbzRUcNTkjO91wRIvTgYZDQ-JZBG1sGAfcw/exec";
 
-    async function start() {
+    async function testConnection() {
       const status = document.getElementById("status");
-      const detail = document.getElementById("detail");
+      const result = document.getElementById("result");
 
       try {
-        status.textContent = "① LIFF初期化中";
+        status.textContent = "① GASへ通信中…";
 
-        await Promise.race([
-          liff.init({ liffId: LIFF_ID }),
-          new Promise((_, reject) =>
-            setTimeout(() =>
-              reject(new Error("初期化が10秒でタイムアウト")),
-              10000
-            )
-          )
-        ]);
+        const response = await fetch(GAS_URL, {
+          method: "GET",
+          redirect: "follow"
+        });
 
-        status.textContent = "② LIFF初期化成功";
-
-        if (!liff.isLoggedIn()) {
-          detail.textContent =
-            "LINEログインが必要です。";
-          return;
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
         }
 
-        status.textContent = "③ LINEログイン確認成功";
+        const data = await response.json();
 
-        const idToken = liff.getIDToken();
-
-        if (!idToken) {
-          detail.textContent =
-            "IDトークンを取得できませんでした。";
-          return;
-        }
-
-        detail.textContent =
-          "④ IDトークン取得成功！" +
-          " カラダログの認証準備OK！";
+        status.textContent = "② 通信成功！";
+        result.textContent = JSON.stringify(data, null, 2);
 
       } catch (error) {
-        status.textContent =
-          "❌ エラー：" + error.message;
+        status.textContent = "❌ 通信エラー";
+        result.textContent = error.message;
       }
     }
 
-    start();
+    testConnection();
   </script>
 </body>
 </html>
