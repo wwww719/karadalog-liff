@@ -3,65 +3,134 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>カラダログ｜認証・通信テスト</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>カラダログ｜数字入力</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f8fa;
+      color: #26323b;
+    }
+    main { max-width: 360px; margin: auto; }
+    h1 { text-align: center; font-size: 23px; }
+    .display {
+      background: white;
+      border-radius: 18px;
+      padding: 25px 15px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .hint { color: #697782; font-size: 14px; }
+    #amount { font-size: 48px; font-weight: bold; }
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .keys button {
+      border: none;
+      background: white;
+      border-radius: 14px;
+      height: 65px;
+      font-size: 26px;
+      cursor: pointer;
+    }
+    #register {
+      width: 100%;
+      margin-top: 18px;
+      padding: 19px;
+      border: none;
+      border-radius: 14px;
+      background: #5d96c8;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    #register:disabled { opacity: 0.4; }
+    #status { text-align: center; font-size: 13px; }
+  </style>
 </head>
 <body>
-  <h2>💧 カラダログ</h2>
-  <p id="status">準備中…</p>
-  <p id="detail"></p>
+  <main>
+    <h1>💧 カラダログ</h1>
+    <div class="display">
+      <div class="hint">飲んだ量を入力</div>
+      <span id="amount">0</span> ml
+    </div>
+
+    <div class="keys" id="keys"></div>
+    <button id="register" disabled>この量を登録する</button>
+    <p id="status">LINE接続を確認しています…</p>
+  </main>
 
   <script>
     const LIFF_ID = "2011952112-wmxBobwq";
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbxeHd--NdaM-4o1Tmwb1Sy6pUGYcNQWWrMWbzRUcNTkjO91wRIvTgYZDQ-JZBG1sGAfcw/exec";
+    let amount = "";
+    let lineReady = false;
+
+    const amountElement = document.getElementById("amount");
+    const registerButton = document.getElementById("register");
+    const statusElement = document.getElementById("status");
+
+    function update() {
+      amountElement.textContent = amount || "0";
+      const number = Number(amount);
+      registerButton.disabled =
+        !lineReady || !amount || number < 1 || number > 5000;
+    }
+
+    function pressKey(key) {
+      if (key === "C") {
+        amount = "";
+      } else if (key === "⌫") {
+        amount = amount.slice(0, -1);
+      } else if (amount.length < 4) {
+        amount = (amount + key).replace(/^0+/, "");
+      }
+      update();
+    }
+
+    const keys = document.getElementById("keys");
+    ["1","2","3","4","5","6","7","8","9","C","0","⌫"]
+      .forEach(key => {
+        const button = document.createElement("button");
+        button.textContent = key;
+        button.addEventListener("click", () => pressKey(key));
+        keys.appendChild(button);
+      });
 
     async function start() {
-      const status = document.getElementById("status");
-      const detail = document.getElementById("detail");
-
       try {
-        status.textContent = "① LIFF初期化中…";
         await liff.init({ liffId: LIFF_ID });
 
         if (!liff.isLoggedIn()) {
-          status.textContent = "LINEログインが必要です";
+          statusElement.textContent = "LINEログインが必要です";
+          liff.login();
           return;
         }
 
-        status.textContent = "② LINE認証成功";
-
-        const idToken = liff.getIDToken();
-        if (!idToken) {
-          throw new Error("IDトークンを取得できません");
+        if (!liff.getIDToken()) {
+          throw new Error("認証情報を取得できません");
         }
 
-        detail.textContent = "③ IDトークン取得成功";
-
-        const response = await fetch(GAS_URL, {
-          method: "GET"
-        });
-
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status);
-        }
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error("GASの応答が正常ではありません");
-        }
-
-        status.textContent = "④ GAS通信成功！";
-        detail.textContent =
-          "LINE認証・GAS通信ともに正常です！";
-
+        lineReady = true;
+        statusElement.textContent = "LINE接続OK";
+        update();
       } catch (error) {
-        status.textContent = "❌ エラー";
-        detail.textContent = error.message;
+        statusElement.textContent = "接続エラー：" + error.message;
       }
     }
+
+    registerButton.addEventListener("click", () => {
+      alert(
+        amount + "ml の入力を確認しました。\n" +
+        "※まだテスト画面のため登録はされません。"
+      );
+    });
 
     start();
   </script>
