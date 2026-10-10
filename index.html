@@ -1,0 +1,38 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>カラダログ LIFFテスト</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <h2>💧 カラダログ</h2>
+  <p id="status">画面を読み込みました</p>
+
+  <script>
+    async function start() {
+      const status = document.getElementById("status");
+      status.textContent = "LIFF初期化中…";
+
+      try {
+        const liffId = "2011952112-wmxBobwq";
+
+        await Promise.race([
+          liff.init({ liffId }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("10秒でタイムアウト")), 10000)
+          )
+        ]);
+
+        status.textContent = "✅ LIFF初期化成功！";
+      } catch (error) {
+        status.textContent = "❌ " + error.message;
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>
